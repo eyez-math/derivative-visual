@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>נגזרת מהבסיס — מבינים שיפוע וגוזרים בלי להקליד</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --line:#dbe3ef; --ink:#162033; --muted:#667287;
+  --blue:#3157d7; --blue-soft:#edf2ff; --green:#16825c; --green-soft:#e8f6f0;
+  --red:#c44052; --red-soft:#fdecef; --amber:#b57a00; --amber-soft:#fff4d8; --purple:#7b57c7;
+  --shadow:0 10px 30px rgba(15,23,42,.07); --r:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,"Segoe UI",sans-serif;color:var(--ink);line-height:1.55}
+button,input{font:inherit}
+input[type=range]{direction:ltr}
+.app{max-width:1240px;margin:auto;padding:18px 14px 56px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:10px}
+.top h1{margin:0 0 8px;font-size:clamp(29px,4vw,46px);line-height:1.05}
+.top p{margin:0;color:var(--muted);max-width:820px;font-size:18px}
+.badge{background:#111827;color:#fff;border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+.nav{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 18px}
+.nav button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 16px;font-weight:700;cursor:pointer}
+.nav button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.screen{display:none}.screen.active{display:block}
+.head{margin-bottom:14px}.head h2{margin:0 0 6px;font-size:clamp(26px,3vw,38px)}.head p{margin:0;color:var(--muted);max-width:860px}
+.visual-layout{display:flex;flex-direction:column;gap:16px}.graphs{display:grid;grid-template-columns:1fr 1fr;gap:18px}.control-panel{display:grid;grid-template-columns:1.1fr 1.1fr .9fr;gap:14px}.control-box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.func-list{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:10px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.card h3{margin:0 0 10px;font-size:22px}
+.graph-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-weight:800}
+.small{font-size:14px;color:var(--muted)}
+.pills,.choices,.rule-choices{display:flex;gap:8px;flex-wrap:wrap}
+.pills button,.choices button,.rule-choices button,.q-options button,.func-list button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;cursor:pointer;font-weight:700}
+.pills button.active,.func-list button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.graph{width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#fff;display:block}
+.gridline{stroke:#ecf0f6;stroke-width:1}.axis{stroke:#7f8ba0;stroke-width:1.4}.curve{fill:none;stroke:var(--blue);stroke-width:3.4;stroke-linecap:round}.curve2{fill:none;stroke:var(--purple);stroke-width:3.4;stroke-linecap:round}.guide{stroke:#b8c3d6;stroke-width:1.2;stroke-dasharray:5 5}.tan{stroke-width:3}.dot{stroke:#fff;stroke-width:2}.label{font-size:13px;fill:#64748b;font-family:Arial,sans-serif}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 14px;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.blue{background:var(--blue);color:#fff;border-color:var(--blue)}
+.range-wrap{margin-top:14px}.range-wrap label{display:flex;justify-content:space-between;gap:10px;font-weight:700;margin-bottom:6px}.range-wrap input{width:100%}
+.readout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.mini{background:#f7f9fd;border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-weight:700;min-height:72px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-weight:700}
+.chip.up{background:var(--green-soft);color:var(--green)}.chip.down{background:var(--red-soft);color:var(--red)}.chip.zero{background:var(--amber-soft);color:var(--amber)}.chip.info{background:var(--blue-soft);color:var(--blue)}
+.info-box{background:var(--blue-soft);border:1px solid #dbe5ff;border-radius:15px;padding:13px 14px;margin-top:12px}
+.summary{margin-top:12px;font-size:17px;font-weight:700}
+.math{direction:ltr;unicode-bidi:isolate;font-family:"Cambria Math","Times New Roman",serif;display:inline-block}
+.rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:10px}
+.rule{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff;text-align:center;min-height:140px;display:flex;flex-direction:column;justify-content:center}
+.rule .math{font-size:25px}.rule strong{display:block;margin-top:6px;font-size:18px}
+.stepbox{display:block;margin-top:14px}
+.example{border:1px solid var(--line);border-radius:18px;background:#fff;padding:28px 34px;min-height:420px;display:flex;flex-direction:column;justify-content:flex-start}
+.example h4{margin:0 0 16px;font-size:32px}.example p{margin:8px 0;font-size:29px}.example .math{font-size:1.12em}.ex-lines{background:#f7f9fd;border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-top:18px;min-height:245px;font-size:24px;line-height:1.95}
+.q-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.progress{height:8px;background:#ebeff6;border-radius:99px;overflow:hidden;margin:8px 0 14px}.progress > div{height:100%;background:var(--blue)}
+.q-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.q-card h3{margin:0 0 8px;font-size:24px}.q-text{font-size:28px;font-weight:800;margin:10px 0 12px;direction:ltr;text-align:center;font-family:"Cambria Math","Times New Roman",serif}
+.q-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.q-options button{text-align:center;padding:13px 12px;font-size:22px;direction:ltr;font-family:"Cambria Math","Times New Roman",serif}
+.q-options button.ok{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.q-options button.bad{background:var(--red-soft);border-color:var(--red);color:var(--red)}
+.feedback{display:none;margin-top:12px;border-radius:15px;padding:12px 14px;font-weight:700}.feedback.show{display:block}.feedback.ok{background:var(--green-soft);color:#126b4d}.feedback.bad{background:var(--red-soft);color:#a53141}
+.result-box{margin-top:14px;background:linear-gradient(135deg,#eef2ff,#f8f2ff);border:1px solid #d9defc;border-radius:16px;padding:14px}
+.footer-nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
+
+
+.example-carousel{display:grid;grid-template-columns:78px minmax(0,1fr) 78px;gap:16px;align-items:center;margin-top:16px}
+.carousel-btn{width:68px;height:68px;border-radius:50%;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);font-size:30px;font-weight:800;cursor:pointer}
+.carousel-btn:disabled{opacity:.3;cursor:not-allowed}
+.example-dots{display:flex;justify-content:center;gap:9px;margin-top:14px}
+.example-dot{width:12px;height:12px;border-radius:50%;border:0;background:#cfd7e5;padding:0;cursor:pointer}
+.example-dot.active{background:var(--blue)}
+.example-counter{text-align:center;font-weight:800;color:var(--muted);margin-top:11px;font-size:18px}
+@media(max-width:720px){.example-carousel{grid-template-columns:1fr}.carousel-btn{width:100%;height:50px;border-radius:12px}.example{min-height:440px;padding:22px}.example h4{font-size:27px}.example p{font-size:24px}.ex-lines{font-size:21px}}
+@media (max-width:1020px){.control-panel{grid-template-columns:1fr}.func-list{grid-template-columns:repeat(3,1fr)}.top{display:block}.badge{display:inline-block;margin-top:12px}}
+@media (max-width:720px){.graphs{grid-template-columns:1fr}.rules{grid-template-columns:1fr 1fr}.stepbox{grid-template-columns:1fr}.q-options{grid-template-columns:1fr}.readout{grid-template-columns:1fr}.func-list{grid-template-columns:repeat(2,1fr)}.app{padding-inline:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <div class="small" style="font-weight:800;color:var(--blue);margin-bottom:4px">4 יחידות • כיתה י׳ • בלי הקלדה</div>
+      <h1>נגזרת מהבסיס</h1>
+      <p>הגרסה הזו בכוונה הרבה יותר פשוטה: קודם <b>רואים</b> מה הגרף עושה ומה זה שיפוע, אחר כך רואים לידו את <b>הנגזרת</b>, ורק בסוף לומדים כללי גזירה ומתרגלים המון שאלות אמריקאיות.</p>
+    </div>
+    <div class="badge">פשוט • זורם • בלי מקלדת</div>
+  </div>
+
+  <div class="nav" id="nav"></div>
+
+  <section class="screen active" id="screen0">
+    <div class="head">
+      <h2>1. רואים את הקשר בין הפונקציה לנגזרת</h2>
+      <p>בחרו פונקציה והזיזו את הנקודה. שני הגרפים נשארים גדולים ונקיים: משמאל הפונקציה והמשיק, ומימין גרף הנגזרת. כל המידע וההסברים נמצאים מתחת לגרפים.</p>
+    </div>
+
+    <div class="visual-layout">
+      <div class="card" style="padding:14px 16px">
+        <div class="graph-title"><span>בחרו פונקציה</span><span class="small">אפשר לעבור בין הרבה צורות ולראות איך הנגזרת משתנה</span></div>
+        <div class="func-list" id="funcList"></div>
+      </div>
+
+      <div class="graphs">
+        <div class="card">
+          <div class="graph-title"><span>הפונקציה <span class="math">f(x)</span></span><span class="small" id="fname"></span></div>
+          <svg class="graph" id="graphF" viewBox="0 0 520 360" aria-label="גרף פונקציה"></svg>
+        </div>
+        <div class="card">
+          <div class="graph-title"><span>הנגזרת <span class="math">f′(x)</span></span><span class="small" id="dfname"></span></div>
+          <svg class="graph" id="graphD" viewBox="0 0 520 360" aria-label="גרף נגזרת"></svg>
+        </div>
+      </div>
+
+      <div class="control-panel">
+        <div class="control-box">
+          <h3 style="margin:0 0 8px">הזיזו את הנקודה</h3>
+          <div class="range-wrap" style="margin-top:0">
+            <label><span>מיקום הנקודה</span><span id="xLabel">x = 0</span></label>
+            <input type="range" id="xSlider" min="-30" max="30" step="1" value="0">
+          </div>
+          <div class="controls">
+            <button class="btn primary" id="playBtn">▶ הפעלה</button>
+            <button class="btn" id="stopBtn">⏸ עצירה</button>
+            <button class="btn" id="resetBtn">איפוס ל־x=0</button>
+          </div>
+        </div>
+
+        <div class="control-box">
+          <h3 style="margin:0 0 8px">מה קורה בנקודה?</h3>
+          <div class="readout" id="readout"></div>
+        </div>
+
+        <div class="control-box">
+          <h3 style="margin:0 0 8px">הקשר שצריך לזכור</h3>
+          <div class="summary" id="dynamicSummary"></div>
+          <div class="info-box">
+            משיק עולה → <span class="math">f′(x)&gt;0</span><br>
+            משיק יורד → <span class="math">f′(x)&lt;0</span><br>
+            משיק אופקי → <span class="math">f′(x)=0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen1">
+    <div class="head">
+      <h2>2. כללי הגזירה — קצר וברור</h2>
+      <p>כאן לא מסבכים. זוכרים כמה חוקים פשוטים, ורואים דוגמאות מלאות שלב־אחר־שלב.</p>
+    </div>
+
+    <div class="card">
+      <h3>החוקים העיקריים</h3>
+      <div class="rules">
+        <div class="rule"><span class="math">c → 0</span><strong>קבוע נגזר ל־0</strong></div>
+        <div class="rule"><span class="math">x → 1</span><strong>x נגזר ל־1</strong></div>
+        <div class="rule"><span class="math">x<sup>n</sup> → n·x<sup>n−1</sup></span><strong>מורידים חזקה ומפחיתים 1</strong></div>
+        <div class="rule"><span class="math">(f ± g)′ = f′ ± g′</span><strong>גוזרים כל איבר בנפרד</strong></div>
+      </div>
+    </div>
+
+    <div class="example-carousel">
+      <button class="carousel-btn" id="prevExample" aria-label="דוגמה קודמת">→</button>
+      <div>
+        <div class="example" id="exampleCard"></div>
+        <div class="example-counter" id="exampleCounter"></div>
+        <div class="example-dots" id="exampleDots"></div>
+      </div>
+      <button class="carousel-btn" id="nextExample" aria-label="דוגמה הבאה">←</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen2">
+    <div class="head">
+      <h2>3. תרגול אמריקאי של גזירה</h2>
+      <p>מאגר של <b>50 שאלות אמריקאיות</b>. אפשר לתרגל סט אקראי של 20 שאלות בכל פעם, או לעבור על כל המאגר.</p>
+    </div>
+
+    <div class="controls" style="margin-bottom:12px"><button class="btn blue" id="mode20">סט אקראי של 20</button><button class="btn" id="mode50">כל 50 השאלות</button></div>
+    <div class="q-card">
+      <div class="q-top">
+        <div style="font-weight:800" id="qCounter"></div>
+        <div class="small">ציון: <span id="scoreNow">0</span></div>
+      </div>
+      <div class="progress"><div id="qProg" style="width:0%"></div></div>
+
+      <h3>גזרו את הפונקציה:</h3>
+      <div class="q-text" id="qText"></div>
+      <div class="q-options" id="qOptions"></div>
+      <div class="feedback" id="qFeedback"></div>
+
+      <div class="footer-nav">
+        <button class="btn" id="restartQuiz">התחל מחדש</button>
+        <button class="btn primary" id="nextQuiz" disabled>השאלה הבאה ←</button>
+      </div>
+
+      <div class="result-box" id="quizEnd" style="display:none"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const svgNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs, parent){ const e = document.createElementNS(svgNS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(parent) parent.appendChild(e); return e; }
+function fmt(n){ if(Math.abs(n) < 1e-8) n = 0; const s = (Math.round(n*100)/100).toString(); return s.replace('-', '−'); }
+function colorForSlope(m){ return Math.abs(m) < 0.001 ? 'var(--amber)' : (m>0 ? 'var(--green)' : 'var(--red)'); }
+function signText(m){ return Math.abs(m) < 0.001 ? 'אופקי' : (m>0 ? 'עולה' : 'יורד'); }
+function signChipClass(m){ return Math.abs(m) < 0.001 ? 'zero' : (m>0 ? 'up' : 'down'); }
+
+const screens = [
+  {title:'1. רואים את הקשר'},
+  {title:'2. כללי גזירה'},
+  {title:'3. תרגול אמריקאי'}
+];
+let currentScreen = 0;
+function renderNav(){
+  $('#nav').innerHTML = screens.map((s,i)=>`<button class="${i===currentScreen?'active':''}" data-i="${i}">${s.title}</button>`).join('');
+  $$('#nav button').forEach(b=>b.onclick=()=>showScreen(+b.dataset.i));
+}
+function showScreen(i){ currentScreen=i; $$('.screen').forEach((s,idx)=>s.classList.toggle('active', idx===i)); renderNav(); }
+renderNav();
+
+const funcs = [
+  {name:'x²', f:x=>x*x, d:x=>2*x, fLabel:'f(x)=x²', dLabel:'f′(x)=2x', xMin:-3.2, xMax:3.2, yMinF:-1, yMaxF:10, yMinD:-7, yMaxD:7},
+  {name:'x³', f:x=>x*x*x, d:x=>3*x*x, fLabel:'f(x)=x³', dLabel:'f′(x)=3x²', xMin:-2.2, xMax:2.2, yMinF:-9, yMaxF:9, yMinD:-1, yMaxD:13},
+  {name:'x³−3x', f:x=>x*x*x-3*x, d:x=>3*x*x-3, fLabel:'f(x)=x³−3x', dLabel:'f′(x)=3x²−3', xMin:-2.4, xMax:2.4, yMinF:-5, yMaxF:5, yMinD:-4, yMaxD:12},
+  {name:'−x²+4', f:x=>-x*x+4, d:x=>-2*x, fLabel:'f(x)=−x²+4', dLabel:'f′(x)=−2x', xMin:-3.2, xMax:3.2, yMinF:-6, yMaxF:5, yMinD:-7, yMaxD:7},
+  {name:'(x−1)²−2', f:x=>(x-1)*(x-1)-2, d:x=>2*x-2, fLabel:'f(x)=(x−1)²−2', dLabel:'f′(x)=2x−2', xMin:-3.2, xMax:4.2, yMinF:-4, yMaxF:10, yMinD:-9, yMaxD:9},
+  {name:'x⁴−2x²', f:x=>x*x*x*x-2*x*x, d:x=>4*x*x*x-4*x, fLabel:'f(x)=x⁴−2x²', dLabel:'f′(x)=4x³−4x', xMin:-2.2, xMax:2.2, yMinF:-2, yMaxF:8, yMinD:-12, yMaxD:12}
+];
+let currentFunc = 0;
+let currentX = 0;
+let timer = null;
+
+function drawAxes(svg, win){
+  svg.innerHTML='';
+  const W=520,H=360,m=28;
+  const X = x => m + (x-win.xMin)/(win.xMax-win.xMin)*(W-2*m);
+  const Y = y => H-m - (y-win.yMin)/(win.yMax-win.yMin)*(H-2*m);
+  for(let i=Math.ceil(win.xMin); i<=Math.floor(win.xMax); i++) sv('line',{x1:X(i),y1:Y(win.yMin),x2:X(i),y2:Y(win.yMax),class:'gridline'},svg);
+  for(let j=Math.ceil(win.yMin); j<=Math.floor(win.yMax); j++) sv('line',{x1:X(win.xMin),y1:Y(j),x2:X(win.xMax),y2:Y(j),class:'gridline'},svg);
+  if(win.xMin<=0 && win.xMax>=0) sv('line',{x1:X(0),y1:Y(win.yMin),x2:X(0),y2:Y(win.yMax),class:'axis'},svg);
+  if(win.yMin<=0 && win.yMax>=0) sv('line',{x1:X(win.xMin),y1:Y(0),x2:X(win.xMax),y2:Y(0),class:'axis'},svg);
+  sv('text',{x:W-18,y:Y(0)-8,class:'label','text-anchor':'end'},svg).textContent='x';
+  sv('text',{x:X(0)+8,y:18,class:'label'},svg).textContent='y';
+  return {W,H,m,X,Y};
+}
+function drawCurve(svg, fn, win, cls){
+  const ctx=drawAxes(svg,win); const {X,Y}=ctx; let d=''; let started=false;
+  for(let px=0; px<=360; px++){
+    const x = win.xMin + (px/360)*(win.xMax-win.xMin); const y = fn(x);
+    if(!isFinite(y)) { started=false; continue; }
+    const cx=X(x), cy=Y(y);
+    d += (started?'L':'M')+cx+' '+cy+' '; started=true;
+  }
+  sv('path',{d, class:cls},svg);
+  return ctx;
+}
+function tangentLine(ctx, x0, y0, m, color, svg){
+  const len = 220;
+  const x1 = x0 - len/2, x2 = x0 + len/2;
+  const p1x = ctx.X(x1), p1y = ctx.Y(y0 + m*(x1-x0));
+  const p2x = ctx.X(x2), p2y = ctx.Y(y0 + m*(x2-x0));
+  sv('line',{x1:p1x,y1:p1y,x2:p2x,y2:p2y,class:'tan',stroke:color},svg);
+}
+function drawVisual(){
+  const f = funcs[currentFunc];
+  $('#fname').textContent = f.fLabel;
+  $('#dfname').textContent = f.dLabel;
+  $('#xLabel').textContent = `x = ${fmt(currentX)}`;
+  $('#funcList').innerHTML = funcs.map((fn,i)=>`<button class="${i===currentFunc?'active':''}" data-i="${i}">${fn.fLabel}</button>`).join('');
+  $$('#funcList button').forEach(b=>b.onclick=()=>{currentFunc=+b.dataset.i; currentX=0; $('#xSlider').value=0; drawVisual();});
+
+  const svgF = $('#graphF'), svgD = $('#graphD');
+  const ctxF = drawCurve(svgF, f.f, {xMin:f.xMin,xMax:f.xMax,yMin:f.yMinF,yMax:f.yMaxF}, 'curve');
+  const ctxD = drawCurve(svgD, f.d, {xMin:f.xMin,xMax:f.xMax,yMin:f.yMinD,yMax:f.yMaxD}, 'curve2');
+
+  const y = f.f(currentX); const slope = f.d(currentX);
+  const tColor = colorForSlope(slope);
+  tangentLine(ctxF, currentX, y, slope, tColor, svgF);
+  sv('line',{x1:ctxF.X(currentX),y1:ctxF.Y(y),x2:ctxF.X(currentX),y2:ctxF.Y(0),class:'guide'},svgF);
+  sv('circle',{cx:ctxF.X(currentX),cy:ctxF.Y(y),r:7,fill:varColor(tColor),class:'dot'},svgF);
+
+  const dy = f.d(currentX);
+  sv('line',{x1:ctxD.X(currentX),y1:ctxD.Y(dy),x2:ctxD.X(currentX),y2:ctxD.Y(0),class:'guide'},svgD);
+  sv('circle',{cx:ctxD.X(currentX),cy:ctxD.Y(dy),r:7,fill:'#7b57c7',class:'dot'},svgD);
+
+  $('#readout').innerHTML = `
+    <div class="mini"><div class="small">פונקציה</div><div class="math" style="font-size:22px">${f.fLabel}</div></div>
+    <div class="mini"><div class="small">נגזרת</div><div class="math" style="font-size:22px">${f.dLabel}</div></div>
+    <div class="mini"><div class="small">ערך הנקודה</div><div>x = ${fmt(currentX)}, &nbsp; y = ${fmt(y)}</div></div>
+    <div class="mini"><div class="small">שיפוע המשיק</div><div class="math">f′(${fmt(currentX)}) = ${fmt(slope)}</div></div>
+  `;
+
+  let chip = `<span class="chip ${signChipClass(slope)}">המשיק ${signText(slope)}</span>`;
+  chip += `<span class="chip info">בגרף הנגזרת הנקודה נמצאת ב־(${fmt(currentX)}, ${fmt(slope)})</span>`;
+  $('#dynamicSummary').innerHTML = chip;
+
+  let text='';
+  if(Math.abs(slope)<0.001){
+    text = `כאן המשיק אופקי. כלומר השיפוע הוא 0, ולכן בגרף הנגזרת הנקודה נמצאת בדיוק על ציר x.`;
+  }else if(slope>0){
+    text = `כאן הפונקציה עולה. לכן השיפוע חיובי, ובגלל זה הנקודה בגרף הנגזרת נמצאת מעל ציר x.`;
+  }else{
+    text = `כאן הפונקציה יורדת. לכן השיפוע שלילי, ובגלל זה הנקודה בגרף הנגזרת נמצאת מתחת לציר x.`;
+  }
+  $('#dynamicSummary').insertAdjacentHTML('beforeend', `<div class="info-box" style="margin-top:10px">${text}</div>`);
+}
+function varColor(c){ if(c.startsWith('var(')){ const name=c.slice(4,-1); return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); } return c; }
+$('#xSlider').addEventListener('input', e=>{ currentX = (+e.target.value)/10; drawVisual(); });
+$('#playBtn').onclick = ()=>{
+  clearInterval(timer);
+  const dirObj = {dir:1};
+  timer = setInterval(()=>{
+    let val = +$('#xSlider').value;
+    if(val>=+$('#xSlider').max) dirObj.dir=-1;
+    if(val<=+$('#xSlider').min) dirObj.dir=1;
+    val += dirObj.dir;
+    $('#xSlider').value = val;
+    currentX = val/10; drawVisual();
+  },110);
+};
+$('#stopBtn').onclick = ()=> clearInterval(timer);
+$('#resetBtn').onclick = ()=>{ clearInterval(timer); $('#xSlider').value=0; currentX=0; drawVisual(); };
+drawVisual();
+
+const derivativeExamples = [
+  {title:'דוגמה 1: איבר אחד',fn:'f(x)=5x<sup>3</sup>',body:`<div>לוקחים את החזקה <span class="math">3</span> ושמים אותה כמקדם.</div><div>מכפילים: <span class="math">3·5 = 15</span></div><div>מורידים את החזקה ב־1: <span class="math">x<sup>3</sup> → x<sup>2</sup></span></div><div style="margin-top:14px;font-weight:800">לכן: <span class="math">f′(x)=15x<sup>2</sup></span></div>`},
+  {title:'דוגמה 2: כמה איברים',fn:'f(x)=3x<sup>2</sup>−4x+7',body:`<div><span class="math">(3x<sup>2</sup>)′ = 6x</span></div><div><span class="math">(−4x)′ = −4</span></div><div><span class="math">(7)′ = 0</span></div><div style="margin-top:14px;font-weight:800">לכן: <span class="math">f′(x)=6x−4</span></div>`},
+  {title:'דוגמה 3: ממעלה רביעית',fn:'f(x)=−2x<sup>4</sup>',body:`<div>החזקה <span class="math">4</span> יורדת קדימה.</div><div><span class="math">4·(−2) = −8</span></div><div><span class="math">x<sup>4</sup> → x<sup>3</sup></span></div><div style="margin-top:14px;font-weight:800">לכן: <span class="math">f′(x)=−8x<sup>3</sup></span></div>`},
+  {title:'דוגמה 4: פולינום מלא',fn:'f(x)=x<sup>5</sup>−2x<sup>3</sup>+x',body:`<div><span class="math">(x<sup>5</sup>)′ = 5x<sup>4</sup></span></div><div><span class="math">(−2x<sup>3</sup>)′ = −6x<sup>2</sup></span></div><div><span class="math">(x)′ = 1</span></div><div style="margin-top:14px;font-weight:800">לכן: <span class="math">f′(x)=5x<sup>4</sup>−6x<sup>2</sup>+1</span></div>`}
+];
+let exampleIndex=0;
+function renderDerivativeExample(){
+ const ex=derivativeExamples[exampleIndex];
+ $('#exampleCard').innerHTML=`<h4>${ex.title}</h4><p><span class="math">${ex.fn}</span></p><div class="ex-lines">${ex.body}</div>`;
+ $('#exampleCounter').textContent=`דוגמה ${exampleIndex+1} מתוך ${derivativeExamples.length}`;
+ $('#exampleDots').innerHTML=derivativeExamples.map((_,i)=>`<button class="example-dot ${i===exampleIndex?'active':''}" data-i="${i}" aria-label="דוגמה ${i+1}"></button>`).join('');
+ $$('#exampleDots .example-dot').forEach(b=>b.onclick=()=>{exampleIndex=+b.dataset.i;renderDerivativeExample();});
+ $('#prevExample').disabled=exampleIndex===0;
+ $('#nextExample').disabled=exampleIndex===derivativeExamples.length-1;
+}
+$('#prevExample').onclick=()=>{if(exampleIndex>0){exampleIndex--;renderDerivativeExample();}};
+$('#nextExample').onclick=()=>{if(exampleIndex<derivativeExamples.length-1){exampleIndex++;renderDerivativeExample();}};
+renderDerivativeExample();
+
+const questionBank = [
+  {q:'7', a:'0', o:['0','1','7x','7']},
+  {q:'x', a:'1', o:['0','1','x','2']},
+  {q:'x<sup>2</sup>', a:'2x', o:['x','2x','2x<sup>2</sup>','x<sup>2</sup>']},
+  {q:'3x<sup>2</sup>', a:'6x', o:['3x','6x','6x<sup>2</sup>','2x']},
+  {q:'5x<sup>3</sup>', a:'15x<sup>2</sup>', o:['15x<sup>2</sup>','5x<sup>2</sup>','15x','10x<sup>2</sup>']},
+  {q:'−2x<sup>4</sup>', a:'−8x<sup>3</sup>', o:['−8x<sup>3</sup>','8x<sup>3</sup>','−6x<sup>3</sup>','−8x<sup>4</sup>']},
+  {q:'4x', a:'4', o:['4','1','4x','0']},
+  {q:'x<sup>5</sup>', a:'5x<sup>4</sup>', o:['4x<sup>5</sup>','5x<sup>4</sup>','5x<sup>5</sup>','x<sup>4</sup>']},
+  {q:'2x<sup>3</sup>+x', a:'6x<sup>2</sup>+1', o:['6x<sup>2</sup>+1','6x+1','2x<sup>2</sup>+1','6x<sup>2</sup>+x']},
+  {q:'x<sup>2</sup>+4x', a:'2x+4', o:['2x+4','x+4','2x','4x+2']},
+  {q:'3x<sup>2</sup>−5x+7', a:'6x−5', o:['6x−5','6x−5+7','3x−5','6x+5']},
+  {q:'2x<sup>3</sup>+x<sup>2</sup>', a:'6x<sup>2</sup>+2x', o:['6x<sup>2</sup>+2x','6x<sup>2</sup>+x','2x<sup>2</sup>+2x','3x<sup>2</sup>+2x']},
+  {q:'−x<sup>3</sup>+6x', a:'−3x<sup>2</sup>+6', o:['−3x<sup>2</sup>+6','−x<sup>2</sup>+6','−3x<sup>2</sup>','3x<sup>2</sup>+6']},
+  {q:'4x<sup>4</sup>−3x<sup>2</sup>+2', a:'16x<sup>3</sup>−6x', o:['16x<sup>3</sup>−6x','12x<sup>3</sup>−6x','16x<sup>3</sup>−3x','16x<sup>2</sup>−6x']},
+  {q:'x<sup>5</sup>−2x<sup>3</sup>+x', a:'5x<sup>4</sup>−6x<sup>2</sup>+1', o:['5x<sup>4</sup>−6x<sup>2</sup>+1','5x<sup>4</sup>−2x<sup>2</sup>+1','4x<sup>4</sup>−6x<sup>2</sup>','5x<sup>4</sup>−6x+1']},
+  {q:'−3x<sup>2</sup>+9', a:'−6x', o:['−6x','−3x','−6','6x']},
+  {q:'6x<sup>3</sup>−2x', a:'18x<sup>2</sup>−2', o:['18x<sup>2</sup>−2','18x−2','6x<sup>2</sup>−2','18x<sup>2</sup>']},
+  {q:'x<sup>4</sup>+x<sup>2</sup>+x', a:'4x<sup>3</sup>+2x+1', o:['4x<sup>3</sup>+2x+1','4x<sup>3</sup>+2x','4x<sup>3</sup>+x+1','3x<sup>3</sup>+2x+1']},
+  {q:'−5x', a:'−5', o:['−5','5','−5x','0']},
+  {q:'8x<sup>2</sup>−4x+1', a:'16x−4', o:['16x−4','8x−4','16x+4','16x']},
+  {q:'x<sup>3</sup>+x<sup>2</sup>+x+1', a:'3x<sup>2</sup>+2x+1', o:['3x<sup>2</sup>+2x+1','x<sup>2</sup>+2x+1','3x<sup>2</sup>+2x','3x+2x+1']},
+  {q:'9x<sup>4</sup>', a:'36x<sup>3</sup>', o:['36x<sup>3</sup>','9x<sup>3</sup>','27x<sup>3</sup>','36x<sup>4</sup>']},
+  {q:'2x<sup>5</sup>−3x<sup>2</sup>', a:'10x<sup>4</sup>−6x', o:['10x<sup>4</sup>−6x','8x<sup>4</sup>−6x','10x<sup>4</sup>−3x','10x<sup>5</sup>−6x']},
+  {q:'x<sup>6</sup>', a:'6x<sup>5</sup>', o:['6x<sup>5</sup>','5x<sup>6</sup>','6x<sup>6</sup>','x<sup>5</sup>']},
+  {q:'12', a:'0', o:['0','12','1','12x']},
+  {q:'−x', a:'−1', o:['−1','1','−x','0']},
+  {q:'7x<sup>2</sup>', a:'14x', o:['14x','7x','14x<sup>2</sup>','2x']},
+  {q:'−4x<sup>3</sup>', a:'−12x<sup>2</sup>', o:['−12x<sup>2</sup>','12x<sup>2</sup>','−4x<sup>2</sup>','−12x']},
+  {q:'3x<sup>4</sup>+2', a:'12x<sup>3</sup>', o:['12x<sup>3</sup>','12x<sup>3</sup>+2','9x<sup>3</sup>','12x<sup>4</sup>']},
+  {q:'5x<sup>2</sup>−8', a:'10x', o:['10x','5x','10x−8','2x']},
+  {q:'−2x<sup>3</sup>+4x<sup>2</sup>', a:'−6x<sup>2</sup>+8x', o:['−6x<sup>2</sup>+8x','−6x+8x','−6x<sup>2</sup>+4x','6x<sup>2</sup>+8x']},
+  {q:'x<sup>4</sup>−5x', a:'4x<sup>3</sup>−5', o:['4x<sup>3</sup>−5','4x<sup>3</sup>−5x','3x<sup>3</sup>−5','4x<sup>4</sup>−5']},
+  {q:'10x<sup>3</sup>+2x', a:'30x<sup>2</sup>+2', o:['30x<sup>2</sup>+2','30x+2','10x<sup>2</sup>+2','30x<sup>2</sup>+2x']},
+  {q:'−x<sup>5</sup>+x<sup>2</sup>', a:'−5x<sup>4</sup>+2x', o:['−5x<sup>4</sup>+2x','−5x<sup>4</sup>+x','−4x<sup>4</sup>+2x','5x<sup>4</sup>+2x']},
+  {q:'3x<sup>6</sup>', a:'18x<sup>5</sup>', o:['18x<sup>5</sup>','15x<sup>5</sup>','18x<sup>6</sup>','3x<sup>5</sup>']},
+  {q:'2x<sup>4</sup>−x<sup>3</sup>+5', a:'8x<sup>3</sup>−3x<sup>2</sup>', o:['8x<sup>3</sup>−3x<sup>2</sup>','8x<sup>3</sup>−x<sup>2</sup>','6x<sup>3</sup>−3x<sup>2</sup>','8x<sup>4</sup>−3x<sup>2</sup>']},
+  {q:'x<sup>7</sup>', a:'7x<sup>6</sup>', o:['7x<sup>6</sup>','6x<sup>7</sup>','7x<sup>7</sup>','x<sup>6</sup>']},
+  {q:'−6x<sup>2</sup>+3x', a:'−12x+3', o:['−12x+3','−6x+3','−12x+3x','12x+3']},
+  {q:'4x<sup>5</sup>−2x<sup>2</sup>+7x', a:'20x<sup>4</sup>−4x+7', o:['20x<sup>4</sup>−4x+7','20x<sup>4</sup>−2x+7','16x<sup>4</sup>−4x+7','20x<sup>5</sup>−4x+7']},
+  {q:'x<sup>8</sup>+1', a:'8x<sup>7</sup>', o:['8x<sup>7</sup>','8x<sup>7</sup>+1','7x<sup>8</sup>','8x<sup>8</sup>']},
+  {q:'−3x<sup>4</sup>+2x<sup>3</sup>−x', a:'−12x<sup>3</sup>+6x<sup>2</sup>−1', o:['−12x<sup>3</sup>+6x<sup>2</sup>−1','−12x<sup>3</sup>+6x−1','−9x<sup>3</sup>+6x<sup>2</sup>−1','12x<sup>3</sup>+6x<sup>2</sup>−1']},
+  {q:'5x<sup>4</sup>+5x<sup>2</sup>', a:'20x<sup>3</sup>+10x', o:['20x<sup>3</sup>+10x','20x<sup>3</sup>+5x','15x<sup>3</sup>+10x','20x<sup>4</sup>+10x']},
+  {q:'2x<sup>6</sup>−4x<sup>3</sup>+x', a:'12x<sup>5</sup>−12x<sup>2</sup>+1', o:['12x<sup>5</sup>−12x<sup>2</sup>+1','10x<sup>5</sup>−12x<sup>2</sup>+1','12x<sup>5</sup>−8x<sup>2</sup>+1','12x<sup>6</sup>−12x<sup>2</sup>+1']},
+  {q:'−8x<sup>3</sup>−2', a:'−24x<sup>2</sup>', o:['−24x<sup>2</sup>','−24x<sup>2</sup>−2','−16x<sup>2</sup>','24x<sup>2</sup>']},
+  {q:'x<sup>5</sup>+x<sup>4</sup>', a:'5x<sup>4</sup>+4x<sup>3</sup>', o:['5x<sup>4</sup>+4x<sup>3</sup>','5x<sup>4</sup>+x<sup>3</sup>','4x<sup>4</sup>+4x<sup>3</sup>','5x<sup>5</sup>+4x<sup>4</sup>']},
+  {q:'7x<sup>3</sup>−7x', a:'21x<sup>2</sup>−7', o:['21x<sup>2</sup>−7','21x−7','14x<sup>2</sup>−7','21x<sup>2</sup>−7x']},
+  {q:'−x<sup>6</sup>+3x<sup>2</sup>', a:'−6x<sup>5</sup>+6x', o:['−6x<sup>5</sup>+6x','−6x<sup>5</sup>+3x','−5x<sup>5</sup>+6x','6x<sup>5</sup>+6x']},
+  {q:'4x<sup>2</sup>+2x+9', a:'8x+2', o:['8x+2','4x+2','8x+9','8x+2x']},
+  {q:'3x<sup>5</sup>−x<sup>4</sup>+2x<sup>2</sup>', a:'15x<sup>4</sup>−4x<sup>3</sup>+4x', o:['15x<sup>4</sup>−4x<sup>3</sup>+4x','15x<sup>4</sup>−4x<sup>3</sup>+2x','12x<sup>4</sup>−4x<sup>3</sup>+4x','15x<sup>5</sup>−4x<sup>3</sup>+4x']},
+  {q:'−2x<sup>7</sup>+x', a:'−14x<sup>6</sup>+1', o:['−14x<sup>6</sup>+1','−14x<sup>6</sup>+x','−12x<sup>6</sup>+1','14x<sup>6</sup>+1']}
+];
+
+let activeQuestions=[], qi=0, score=0, locked=false;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function setQuizMode(count){ activeQuestions = count===50 ? [...questionBank] : shuffle(questionBank).slice(0,20); qi=0; score=0; renderQuestion(); }
+function renderQuestion(){
+  const q=activeQuestions[qi]; locked=false; $('#nextQuiz').disabled=true; $('#qFeedback').className='feedback'; $('#quizEnd').style.display='none';
+  $('#qCounter').textContent = `שאלה ${qi+1} מתוך ${activeQuestions.length}`;
+  $('#scoreNow').textContent = score;
+  $('#qProg').style.width = (((qi)/activeQuestions.length)*100)+'%';
+  $('#qText').innerHTML = `f(x) = ${q.q}`;
+  $('#qOptions').innerHTML = shuffle(q.o).map(opt=>`<button data-v="${opt}">${opt}</button>`).join('');
+  $$('#qOptions button').forEach(btn=>btn.onclick=()=>answerQuestion(btn,q));
+}
+function answerQuestion(btn,q){
+  if(locked) return; locked=true; const val=btn.dataset.v;
+  const all=$$('#qOptions button'); all.forEach(b=>{if(b.dataset.v===q.a)b.classList.add('ok'); b.disabled=true;});
+  if(val===q.a){score++; $('#qFeedback').className='feedback show ok'; $('#qFeedback').textContent='נכון!';}
+  else{btn.classList.add('bad'); $('#qFeedback').className='feedback show bad'; $('#qFeedback').innerHTML=`לא נכון. התשובה הנכונה היא <span class="math">${q.a}</span>.`;}
+  $('#scoreNow').textContent=score; $('#nextQuiz').disabled=false;
+}
+$('#nextQuiz').onclick=()=>{ if(qi<activeQuestions.length-1){qi++;renderQuestion()}else finishQuiz(); };
+$('#restartQuiz').onclick=()=>{qi=0;score=0;renderQuestion();};
+$('#mode20').onclick=()=>setQuizMode(20); $('#mode50').onclick=()=>setQuizMode(50);
+function finishQuiz(){ $('#qProg').style.width='100%'; $('#nextQuiz').disabled=true; const pct=Math.round(score/activeQuestions.length*100); let msg=pct>=85?'מצוין מאוד.':(pct>=65?'טוב מאוד.':'כדאי לעבור שוב על הדוגמאות ולנסות סט חדש.'); $('#quizEnd').style.display='block'; $('#quizEnd').innerHTML=`<b>סיימת!</b><br>ענית נכון על <b>${score}</b> מתוך <b>${activeQuestions.length}</b> שאלות (${pct}%).<br>${msg}`;}
+setQuizMode(20);
+</script>
+</body>
+</html>
